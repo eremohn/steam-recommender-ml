@@ -31,7 +31,7 @@ model.fit(caracteristicas)
 
 @app.get('/')
 def message():
-    return "API de desarrolladores de juegos"
+    return "<h1 style='text-align: center; font-size: 32px;'>API de desarrolladores de juegos</h1><p style='text-align: center; font-size: 24px;'>Escriba /docs a continuación de la URL actual de esta página para interactuar con la API.</p>"
 
 @app.get('/developer')
 def developer(desarrollador: str):
