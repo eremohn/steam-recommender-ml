@@ -89,7 +89,8 @@ El código para generar la API se encuentra en el archivo `main.py` y las funcio
 Para el despliegue de la API se seleccionó la plataforma Render, que es una nube unificada para crear y ejecutar aplicaciones y sitios web, permitiendo el despliegue automático desde GitHub. El servicio queda corriendo en [https://steamrecommendersystem.onrender.com/docs](https://steamrecommendersystem.onrender.com/docs).
 
 ### Video
-En el siguiente enlace se obtiene un video con una breve explicación del funcionamiento de la API.
+En el siguiente enlace se obtiene un [video](https://vimeo.com/935678606?share=copy) con una breve explicación del funcionamiento de la API.
+
 
 ---
 
