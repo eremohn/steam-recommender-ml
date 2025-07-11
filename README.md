@@ -12,11 +12,11 @@ Este proyecto desarrolla un sistema de recomendación de videojuegos para la pla
 - [🔗 Fuente de Datos](#-fuente-de-datos)
 - [📁 Estructura del repositorio](#-estructura-del-repositorio)
 - [🚀 Cómo ejecutar el proyecto](#-cómo-ejecutar-el-proyecto)
-- [⚙️ Detalles técnicos](#-detalles-técnicos)
+- [⚙️ Detalles técnicos](#-Detalles-técnicos)
 - [✅ Resultados esperados](#-resultados-esperados)
 - [📈 Próximos pasos](#-próximos-pasos)
-- [📝 Licencia](#-📝-licencia)
-- [🤝 Autor](#-🤝-autor)
+- [📝 Licencia](#-licencia)
+- [🤝 Autor](#-autor)
 
 ---
 
