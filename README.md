@@ -39,6 +39,7 @@ El objetivo principal es crear un sistema que recomiende juegos de Steam similar
 ---
 
 ## 📁 Estructura del repositorio
+```bash
 
 steam-recommender-ml/
 ├── data/
@@ -54,6 +55,7 @@ steam-recommender-ml/
 ├── requirements.txt
 ├── README.md
 └── .gitignore
+```
 
 ---
 
