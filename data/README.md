@@ -18,14 +18,15 @@ data/
 
 ## 📄 Descripción de subcarpetas
 
-### 🔸 `raw/`
-Contiene los datos originales obtenidos del dataset público.  
-Estos archivos no han sido modificados manualmente y se usan como entrada para los scripts de limpieza (ETL).
 
-Ejemplos:
-- `australian_users_items.json`
-- `user_reviews.json`
-- `output_steam_games.json`
+### 🔸 `raw/`  
+Esta carpeta **no contiene archivos actualmente** debido al gran tamaño de los datos originales.  
+Sin embargo, estos pueden ser descargados desde el siguiente enlace compartido en el `README.md` principal del repositorio:
+
+📁 **[Carpeta de datos original (Google Drive)](https://drive.google.com/drive/folders/1HqBG2-sUkz_R3h1dZU5F2uAzpRn7BSpj)**
+
+> Una vez descargados, colocá los archivos `.json` dentro de esta carpeta para ejecutar el pipeline ETL.
+
 
 ### 🔸 `processed/`
 Contiene los datos transformados por los scripts ETL.  
