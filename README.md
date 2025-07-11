@@ -9,10 +9,10 @@ Este proyecto desarrolla un sistema de recomendación de videojuegos para la pla
 - [Descripción del proyecto](#-descripción-del-proyecto)
 - [Fuente de Datos](#-fuente-de-datos)
 - [Estructura del repositorio](#-estructura-del-repositorio)
-- [Cómo ejecutar el proyecto](#-cómo-ejecutar-el-proyecto)
-- [Detalles técnicos](#-detalles-técnicos)
+- [Cómo ejecutar el proyecto](#-como-ejecutar-el-proyecto)
+- [Detalles técnicos](#-detalles-tecnicos)
 - [Resultados esperados](#-resultados-esperados)
-- [Próximos pasos](#-próximos-pasos)
+- [Próximos pasos](#-proximos-pasos)
 - [Licencia](#-licencia)
 
 ---
