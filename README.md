@@ -47,7 +47,7 @@ El objetivo principal es crear un sistema que recomiende juegos de Steam similar
 steam-recommender-ml/
 ├── data/
 │ ├── raw/ # Datos originales en CSV/Parquet
-│ └── processed/ # (Opcional) Datos limpios
+│ └── processed/ # Datos limpios
 │
 ├── eda/ # Análisis exploratorio
 ├── etl/ # Scripts ETL por dataset
