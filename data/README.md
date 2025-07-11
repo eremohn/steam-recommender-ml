@@ -10,8 +10,11 @@ Está organizada en subcarpetas que separan los archivos según su grado de proc
 
 ```
 data/
-├── raw/ # Archivos originales en formato CSV, JSON o Parquet
-├── processed/ # Datos limpios generados por los scripts ETL
+├── raw/              # (vacía por defecto)
+└── processed/
+    ├── csv/          # Datos limpios en CSV
+    └── parquet/      # Datos limpios en Parquet
+
 ```
 
 ---
