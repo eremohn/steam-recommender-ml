@@ -1,51 +1,55 @@
 # 🧠 Carpeta: model/
 
-Esta carpeta contiene los scripts relacionados con la construcción del modelo de recomendación de videojuegos para Steam. El enfoque utilizado en esta primera versión es un **recomendador basado en contenido** que emplea el algoritmo de **vecinos más cercanos (K-Nearest Neighbors, KNN)** y **similitud coseno**.
+Esta carpeta contiene los scripts responsables de construir el sistema de recomendación de videojuegos basado en similitud entre juegos de la plataforma Steam.
 
 ---
 
 ## 📁 Archivo principal
 
-- `item_item_knn.py`:  
-  Script principal del modelo. Permite obtener juegos similares a uno dado, en base a sus características (géneros, etiquetas, etc.).
+| Archivo | Descripción |
+|--------|-------------|
+| `item_item_knn.py` | Implementa un modelo de recomendación basado en contenido utilizando TF‑IDF y el algoritmo K‑Nearest Neighbors. Permite obtener juegos similares a uno dado, en base a sus géneros y etiquetas. |
 
 ---
 
-## 🔍 Descripción del modelo
+## 🔍 Descripción general del modelo
 
-El sistema analiza las características de los juegos y construye un espacio vectorial para calcular similitudes entre ellos. Se utiliza un modelo `KNN` entrenado con métricas de similitud coseno para encontrar los juegos más cercanos.
+El enfoque actual es un **recomendador item-item** basado en contenido. Los pasos incluyen:
 
-### Pasos generales:
-
-1. **Carga de datos procesados** desde `data/processed/csv/output_steam_games.csv`.
-2. **Preprocesamiento y vectorización** de los campos relevantes (por ejemplo: `tags`, `genres`, etc.).
-3. **Cálculo de similitud coseno** entre vectores de juegos.
-4. **Generación de recomendaciones** para un juego de entrada.
+1. **Carga de datos** desde `data/processed/csv/output_steam_games.csv`.
+2. **Preprocesamiento** de las columnas `genres` y `tags`, combinándolas para formar descripciones textuales.
+3. **Vectorización TF‑IDF** de esas descripciones.
+4. **Entrenamiento del modelo KNN** utilizando **similitud coseno**.
+5. **Generación de recomendaciones** para un juego determinado.
 
 ---
 
-## 🧪 Ejemplo de uso
+## ▶️ Cómo usar
 
-Dentro del script hay una función principal:
+Desde la raíz del proyecto:
 
-```python
-def recomendar_juegos(nombre_juego, n=5):
-    ...
-    return recomendaciones
+```bash
+python model/item_item_knn.py --id 123 --top 5
 ```
-Esta función toma como entrada el nombre de un juego (string) y devuelve una lista de n juegos similares.
+
+O bien, podés importar el módulo en un notebook para usarlo de forma programática.
+
+ℹ️ Para usar por nombre de juego, asegurate de que el campo app_name esté disponible en el dataset y sin errores de capitalización.
 
 ## ⚠️ Requisitos
-Asegurate de ejecutar previamente los scripts ETL, ya que este módulo depende del archivo:
+- Python 3.8+
+
+- pandas
+
+- scikit-learn
+
+Instalá las dependencias desde el archivo raíz del proyecto:
+```
+pip install -r requirements.txt
 
 ```
-data/processed/csv/output_steam_games.csv
 
-```
 ## 📌 Notas
-El modelo es fácilmente extensible a otros enfoques (colaborativo, híbrido, embeddings).
+- Este modelo no es supervisado y se recalcula en cada ejecución. Si el volumen de datos aumenta, podría considerarse persistir el modelo y el vectorizador.
 
-No se requiere entrenamiento tradicional: el modelo es no supervisado y se basa en similitud entre características.
-
-Esta versión es item-item, pero se puede adaptar a un sistema user-item si se dispone de ratings o historiales de usuario.
-
+- Ideal como punto de partida para futuras versiones con enfoques colaborativos, híbridos o basados en embeddings.
