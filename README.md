@@ -12,7 +12,7 @@ Este proyecto desarrolla un sistema de recomendación de videojuegos para la pla
 - [🔗 Fuente de Datos](#-fuente-de-datos)
 - [📁 Estructura del repositorio](#-estructura-del-repositorio)
 - [🚀 Cómo ejecutar el proyecto](#-cómo-ejecutar-el-proyecto)
-- [⚙️ Detalles técnicos](#-detalles-tecnicos)
+- [⚙️ Detalles tecnicos](#-detalles-tecnicos)
 - [✅ Resultados esperados](#-resultados-esperados)
 - [📈 Próximos pasos](#-próximos-pasos)
 - [📝 Licencia](#-licencia)
@@ -89,7 +89,7 @@ python etl/etl_australian_users_items.py
 
 ---
 
-## ⚙️ Detalles técnicos
+## ⚙️ Detalles tecnicos
 
 - Scripts ETL para convertir archivos JSON en CSV y Parquet, normalizando estructuras anidadas (listas, diccionarios).
 - Análisis exploratorio utilizando Pandas, Matplotlib y Seaborn para entender la distribución y relaciones entre variables.
