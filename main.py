@@ -11,9 +11,9 @@ app = FastAPI()
 directorio_actual = os.path.dirname(os.path.abspath(__file__))
 
 # Construir las rutas completas a los archivos CSV en el directorio "CSV"
-user_reviews_path = os.path.join(directorio_actual, 'CSV', 'user_reviews.csv')
-output_steam_games_path = os.path.join(directorio_actual, 'CSV', 'output_steam_games.csv')
-australian_users_items_path = os.path.join(directorio_actual, 'CSV', 'australian_users_items.csv')
+user_reviews_path = os.path.join(directorio_actual, 'csv', 'user_reviews.csv')
+output_steam_games_path = os.path.join(directorio_actual, 'csv', 'output_steam_games.csv')
+australian_users_items_path = os.path.join(directorio_actual, 'csv', 'australian_users_items.csv')
 
 # Cargar los datos desde los archivos CSV en las nuevas rutas
 user_reviews = pd.read_csv(user_reviews_path)
