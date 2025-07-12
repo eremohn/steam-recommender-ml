@@ -224,12 +224,3 @@ def get_recommendations(item_id, k=5):
             # Obtener los índices de los juegos recomendados
             return indices.flatten().tolist()
 
-# esto fue añadido 11/07/25 para poder cargarlo a render
-if __name__ == "__main__":
-    import uvicorn, os
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=int(os.getenv("PORT", 8000)),  # Render sete­ará PORT
-        reload=False
-    )
