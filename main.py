@@ -7,18 +7,19 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 app = FastAPI()
 
-# Obtener la ruta al directorio actual del script
-directorio_actual = os.path.dirname(os.path.abspath(__file__))
+# === Rutas a los datos procesados ===========================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PARQUET_DIR = os.path.join(BASE_DIR, "data", "processed", "parquet")
 
-# Construir las rutas completas a los archivos CSV en el directorio "CSV"
-user_reviews_path = os.path.join(directorio_actual, 'csv', 'user_reviews.csv')
-output_steam_games_path = os.path.join(directorio_actual, 'csv', 'output_steam_games.csv')
-australian_users_items_path = os.path.join(directorio_actual, 'csv', 'australian_users_items.csv')
+user_reviews_path         = os.path.join(PARQUET_DIR, "user_reviews.parquet")
+output_steam_games_path   = os.path.join(PARQUET_DIR, "output_steam_games.parquet")
+australian_users_items_path = os.path.join(PARQUET_DIR, "australian_users_items.parquet")
 
-# Cargar los datos desde los archivos CSV en las nuevas rutas
-user_reviews = pd.read_csv(user_reviews_path)
-output_steam_games = pd.read_csv(output_steam_games_path)
-australian_users_items = pd.read_csv(australian_users_items_path)
+# === Carga de datos =========================================================
+user_reviews           = pd.read_parquet(user_reviews_path)
+output_steam_games     = pd.read_parquet(output_steam_games_path)
+australian_users_items = pd.read_parquet(australian_users_items_path)
+
 
 # Cargar los datos y entrenar el modelo al iniciar la aplicación
 steam_games = pd.read_csv(output_steam_games_path)  # Usamos la misma ruta para "output_steam_games.csv"
