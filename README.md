@@ -10,6 +10,7 @@ Este proyecto desarrolla un sistema de recomendación de videojuegos para la pla
 
 - [📄 Descripción del proyecto](#-descripción-del-proyecto)
 - [🔗 Fuente de Datos](#-fuente-de-datos)
+- [🔗 Archivos de prueba](#-archivos-de-prueba)
 - [📁 Estructura del repositorio](#-estructura-del-repositorio)
 - [🚀 Cómo ejecutar el proyecto](#-cómo-ejecutar-el-proyecto)
 - [⚙ Detalles tecnicos](#-detalles-tecnicos)
@@ -41,11 +42,29 @@ El objetivo principal es crear un sistema que recomiende juegos de Steam similar
 - **Diccionario de Datos:** [Diccionario con algunas descripciones de las columnas disponibles en el dataset](https://docs.google.com/spreadsheets/d/1-t9HLzLHIGXvliq56UE_gMaWBVTPfrlTf2D9uAtLGrk/edit?usp=drive_link)
 
 ---
+### 📂 Archivos de prueba
+
+Para facilitar pruebas rápidas de los endpoints, se incluyen tres listas en **`/samples/`**:
+
+| Archivo                | Descripción                                        |
+|------------------------|----------------------------------------------------|
+| `unique_app_names.csv` | Todos los valores únicos de la columna `app_name`. |
+| `unique_developer.csv` | Desarrolladores únicos (`developer`).              |
+| `unique_publisher.csv` | Publishers únicos (`publisher`).                   |
+
+Descárgalos o ábrelos en GitHub y copia cualquier valor como parámetro en `/docs`.  
+Ejemplo:  
+`GET /recomendacion?name=Portal`
+---
 
 ## 📁 Estructura del repositorio
 ```bash
 
 steam-recommender-ml/
+├── samples/              
+│   ├── unique_app_names.csv
+│   ├── unique_developer.csv
+│   └── unique_publisher.csv
 ├── data/
 │ ├── raw/ # Datos originales en CSV/Parquet
 │ └── processed/ # Datos limpios
