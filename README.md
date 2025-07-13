@@ -109,6 +109,17 @@ python etl/etl_australian_users_items.py
 
 ---
 
+
+## 🌐 Demo en línea
+
+La API está operativa en Render. Explora y prueba los endpoints desde la documentación interactiva (Swagger):
+
+[![API en Render](https://img.shields.io/badge/FastAPI-Render-brightgreen?logo=fastapi)](https://steam-recommender-0xqb.onrender.com/docs)
+
+
+
+---
+
 ## 📈 Próximos pasos
 
 - Incorporar una API REST funcional con FastAPI o Flask para consumir recomendaciones.
