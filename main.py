@@ -1,227 +1,207 @@
+"""
+main.py  –  Steam Recommender API
+"""
+
+from pathlib import Path
 import os
 import pandas as pd
 from fastapi import FastAPI, HTTPException
-from typing import List
 from sklearn.neighbors import NearestNeighbors
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-app = FastAPI()
+# ───────────────────────── CONFIG ──────────────────────────
+BASE_DIR     = Path(__file__).resolve().parent
+PARQUET_DIR  = Path(os.getenv("PARQUET_DIR", BASE_DIR / "data" / "processed" / "parquet"))
 
-# === Rutas a los datos procesados ===========================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PARQUET_DIR = os.path.join(BASE_DIR, "data", "processed", "parquet")
+USER_REVIEWS_FP   = PARQUET_DIR / "user_reviews.parquet"
+GAMES_FP          = PARQUET_DIR / "output_steam_games.parquet"
+USERS_ITEMS_FP    = PARQUET_DIR / "australian_users_items.parquet"
 
-user_reviews_path         = os.path.join(PARQUET_DIR, "user_reviews.parquet")
-output_steam_games_path   = os.path.join(PARQUET_DIR, "output_steam_games.parquet")
-australian_users_items_path = os.path.join(PARQUET_DIR, "australian_users_items.parquet")
+# ───────────────────────── DATA ────────────────────────────
+user_reviews           = pd.read_parquet(USER_REVIEWS_FP)
+output_steam_games     = pd.read_parquet(GAMES_FP)
+australian_users_items = pd.read_parquet(USERS_ITEMS_FP)
 
-# === Carga de datos =========================================================
-user_reviews           = pd.read_parquet(user_reviews_path)
-output_steam_games     = pd.read_parquet(output_steam_games_path)
-australian_users_items = pd.read_parquet(australian_users_items_path)
+# Modelo KNN basado en contenido
+def _to_str(x):
+    if isinstance(x, list):
+        return " ".join(map(str, x))
+    if x is None or (isinstance(x, float) and pd.isna(x)):
+        return ""
+    return str(x)
 
+output_steam_games["combined_features"] = (
+    output_steam_games["genres"].apply(_to_str) + " " + output_steam_games["tags"].apply(_to_str)
+)
 
-# Cargar los datos y entrenar el modelo al iniciar la aplicación
-steam_games = pd.read_csv(output_steam_games_path)  # Usamos la misma ruta para "output_steam_games.csv"
-steam_games['combined_features'] = steam_games['genres'].fillna('') + ' ' + steam_games['tags'].fillna('')
-vectorizer = TfidfVectorizer()
-caracteristicas = vectorizer.fit_transform(steam_games['combined_features'])
-model = NearestNeighbors(metric='cosine', algorithm='brute')
-model.fit(caracteristicas)
+vectorizer      = TfidfVectorizer()
+X_features      = vectorizer.fit_transform(output_steam_games["combined_features"])
+knn_model       = NearestNeighbors(metric="cosine", algorithm="brute").fit(X_features)
 
+def get_recommendations(item_id: int, k: int = 5):
+    idx_list = output_steam_games.index[output_steam_games["item_id"] == item_id].tolist()
+    if not idx_list:
+        return []
+    idx = idx_list[0]
+    _, indices = knn_model.kneighbors(X_features[idx], n_neighbors=k + 1)
+    return indices.flatten()[1:].tolist()  # sin el propio juego
 
-@app.get('/')
-def message():
-    return "<h1 style='text-align: center; font-size: 32px;'>API de desarrolladores de juegos</h1><p style='text-align: center; font-size: 24px;'>Escriba /docs a continuación de la URL actual de esta página para interactuar con la API.</p>"
+# ───────────────────────── API ─────────────────────────────
+app = FastAPI(title="Steam Recommender API")
 
-@app.get('/developer')
+@app.get("/")
+def root():
+    return {
+        "message": "Bienvenido. Visita /docs para la API interactiva."
+    }
+
+# ---------- developer ----------
+@app.get("/developer")
 def developer(desarrollador: str):
-
-    # Comprobar si el desarrollador proporcionado existe en los datos
-    if desarrollador not in output_steam_games['developer'].unique():
+    if desarrollador not in output_steam_games["developer"].unique():
         return {"error": "Desarrollador no encontrado"}
 
-    # Filtrar los datos por desarrollador
-    df = output_steam_games[output_steam_games['developer'] == desarrollador]
+    df = output_steam_games[output_steam_games["developer"] == desarrollador].copy()
+    df["release_date"] = pd.to_datetime(df["release_date"])
+    df["year"] = df["release_date"].dt.year
+    df["free"] = df["tags"].apply(_to_str).str.contains("Free", case=False)
 
-    # Convertir la columna 'release_date' a tipo datetime si es necesario
-    if 'release_date' in df.columns:
-        df['release_date'] = pd.to_datetime(df['release_date'])
+    res = (
+        df.groupby(["year", "developer"])
+          .agg(cantidad_de_items=("item_id", "count"),
+               contenido_free=("free", "mean"))
+          .reset_index()
+    )
+    res["contenido_free"] = (res["contenido_free"] * 100).round(2).astype(str) + "%"
+    return res.to_dict(orient="records")
 
-    # Extraer el año de la fecha de lanzamiento si está presente
-    if 'release_date' in df.columns:
-        df['year'] = df['release_date'].dt.year
-
-    # Determinar si el juego es gratuito o no según la columna 'tags'
-    df['free'] = df['tags'].str.contains('Free', case=False)
-
-    # Agrupar por año y desarrollador, y calcular la cantidad de items y el porcentaje de contenido free
-    resultados = df.groupby(['year', 'developer']).agg(
-        cantidad_de_items=('item_id', 'count'),
-        contenido_free=('free', 'mean')  # Calculamos el porcentaje promedio de contenido free
-    ).reset_index()
-
-    # Formatear el porcentaje de contenido free como porcentaje
-    resultados['contenido_free'] = (resultados['contenido_free'] * 100).round(2).astype(str) + '%'
-
-    # Convertir los resultados a un diccionario para su retorno
-    return resultados.to_dict(orient='records')
-
-
-
-@app.get('/userdata')
+# ---------- userdata ----------
+@app.get("/userdata")
 def userdata(user_id: str):
-    # Filtrar los datos por el ID de usuario
-    user_items = australian_users_items[australian_users_items['user_id'] == user_id]
-    
-    # Fusionar los DataFrames para obtener el precio de cada juego que posee el usuario
-    user_items_with_price = pd.merge(user_items, output_steam_games[['item_id', 'price']], on='item_id', how='left')
-    
-    # Calcular el dinero gastado por el usuario
-    money_spent = user_items_with_price['price'].sum()
-    
-    # Calcular el porcentaje de recomendación promedio por usuario
-    recommendation_percentage = user_reviews[user_reviews['user_id'] == user_id]['recommend'].mean() * 100
-    
-    # Contar la cantidad de items por usuario
+    user_items = australian_users_items[australian_users_items["user_id"] == user_id]
+    if user_items.empty:
+        raise HTTPException(404, detail="Usuario no encontrado")
+
+    merged = user_items.merge(output_steam_games[["item_id", "price"]],
+                              on="item_id", how="left")
+    money_spent = merged["price"].sum()
+    rec_pct = user_reviews[user_reviews["user_id"] == user_id]["recommend"].mean() * 100
     items_count = len(user_items)
-    
-    # Retornar los resultados
+
     return {
         "Usuario": user_id,
-        "Dinero gastado": money_spent,
-        "% de recomendación": recommendation_percentage,
+        "Dinero gastado": float(round(money_spent, 2)),
+        "% de recomendación": round(rec_pct, 2),
         "Cantidad de items": items_count
     }
 
+# ---------- UserForGenre ----------
+@app.get("/UserForGenre")
+def user_for_genre(genero: str):
+    mask = australian_users_items["item_name"].str.contains(genero, case=False, na=False)
+    user_items_genre = australian_users_items[mask]
 
+    if user_items_genre.empty:
+        raise HTTPException(404, detail="Género sin datos")
 
-@app.get('/UserForGenre')
-def UserForGenre(genero: str):
-    # Filtrar los datos de australian_users_items por el género dado
-    user_items_genre = australian_users_items[australian_users_items['item_name'].str.contains(genero, case=False, na=False)]
-    
-    # Agrupar por usuario y sumar las horas jugadas
-    user_playtime = user_items_genre.groupby('user_id')['playtime_forever'].sum().reset_index()
-    
-    if user_playtime.empty:
-        return {"error": "No se encontraron datos para el género proporcionado"}
-    
-    # Encontrar el usuario con más horas jugadas para el género dado
-    max_playtime_user = user_playtime.loc[user_playtime['playtime_forever'].idxmax()]
-    max_playtime_user_id = max_playtime_user['user_id']
-    max_playtime = max_playtime_user['playtime_forever']
-    
-    # Filtrar los juegos del usuario con más horas jugadas para obtener el año de lanzamiento
-    max_playtime_user_games = australian_users_items[(australian_users_items['user_id'] == max_playtime_user_id) & (australian_users_items['item_name'].str.contains(genero, case=False, na=False))]
-    max_playtime_user_games = pd.merge(max_playtime_user_games, output_steam_games[['item_id', 'release_date']], on='item_id', how='left')
-    
-    # Convertir la columna 'release_date' a tipo datetime
-    max_playtime_user_games['release_date'] = pd.to_datetime(max_playtime_user_games['release_date'])
-    
-    # Calcular la acumulación de horas jugadas por año de lanzamiento
-    playtime_by_year = max_playtime_user_games.groupby(max_playtime_user_games['release_date'].dt.year)['playtime_forever'].sum().reset_index()
-    playtime_by_year.rename(columns={'release_date': 'Año', 'playtime_forever': 'Horas'}, inplace=True)
-    playtime_by_year = playtime_by_year.astype({'Año': int})
-    playtime_by_year = playtime_by_year.to_dict(orient='records')
-    
-    # Retornar el usuario con más horas jugadas y la acumulación de horas jugadas por año de lanzamiento
-    return {
-        f"Usuario con más horas jugadas para Género {genero}": max_playtime_user_id,
-        "Horas jugadas": playtime_by_year
-    }
+    user_playtime = (
+        user_items_genre.groupby("user_id")["playtime_forever"]
+        .sum().reset_index()
+    )
+    top_user = user_playtime.loc[user_playtime["playtime_forever"].idxmax()]
+    top_user_id = top_user["user_id"]
 
+    games_user = australian_users_items[
+        (australian_users_items["user_id"] == top_user_id) & mask
+    ].merge(output_steam_games[["item_id", "release_date"]], on="item_id", how="left")
 
+    games_user["release_date"] = pd.to_datetime(games_user["release_date"])
+    playtime_year = (
+        games_user.groupby(games_user["release_date"].dt.year)["playtime_forever"]
+        .sum().reset_index(names=["Año", "Horas"])
+        .astype({"Año": int})
+        .to_dict(orient="records")
+    )
 
-@app.get('/best_developer_year')
+    return {f"Usuario con más horas {genero}": top_user_id, "Horas jugadas": playtime_year}
+
+# ---------- best_developer_year ----------
+@app.get("/best_developer_year")
 def best_developer_year(año: int):
-    # Convertir 'release_date' a tipo fecha
-    output_steam_games['release_date'] = pd.to_datetime(output_steam_games['release_date'])
+    games_year = output_steam_games[pd.to_datetime(output_steam_games["release_date"]).dt.year == año]
+    if games_year.empty:
+        raise HTTPException(404, detail="Año sin datos")
 
-    # Filtrar juegos por el año dado
-    juegos_anio_dado = output_steam_games[output_steam_games['release_date'].dt.year == año]
+    desarrolladores = {}
+    for _, row in games_year.iterrows():
+        dev = row["developer"]
+        recs = user_reviews[
+            (user_reviews["item_id"] == row["item_id"]) &
+            (user_reviews["recommend"]) &
+            (user_reviews["sentiment_analysis"] > 0)
+        ]
+        desarrolladores[dev] = desarrolladores.get(dev, 0) + len(recs)
 
-    # Obtener los juegos únicos del año dado
-    juegos_unicos_anio_dado = juegos_anio_dado['item_id'].unique()
+    top3 = sorted(desarrolladores.items(), key=lambda x: x[1], reverse=True)[:3]
+    return [{f"Puesto {i+1}: {dev}": cant} for i, (dev, cant) in enumerate(top3)]
 
-    # Contar la cantidad de juegos recomendados por desarrollador para cada año
-    desarrolladores_por_anio = {}
-    for juego_id in juegos_unicos_anio_dado:
-        # Filtrar revisiones para el juego actual y contar recomendaciones positivas
-        revisiones_juego = user_reviews[user_reviews['item_id'] == juego_id]
-        recomendaciones_positivas = revisiones_juego[(revisiones_juego['recommend'] == True) & (revisiones_juego['sentiment_analysis'] > 0)]
-        desarrollador = juegos_anio_dado[juegos_anio_dado['item_id'] == juego_id]['developer'].iloc[0]
-
-        # Actualizar el recuento de recomendaciones para el desarrollador
-        if desarrollador in desarrolladores_por_anio:
-            desarrolladores_por_anio[desarrollador] += len(recomendaciones_positivas)
-        else:
-            desarrolladores_por_anio[desarrollador] = len(recomendaciones_positivas)
-
-    # Obtener el top 3 de desarrolladores con más juegos recomendados para el año dado
-    top_desarrolladores = sorted(desarrolladores_por_anio.items(), key=lambda x: x[1], reverse=True)[:3]
-
-    # Formatear los resultados en el formato requerido
-    resultados = [{"Puesto {}: {}".format(idx+1, desarrollador) : juegos_recomendados} for idx, (desarrollador, juegos_recomendados) in enumerate(top_desarrolladores)]
-
-    return resultados
-
-
-
-@app.get('/developer_reviews_analysis')
+# ---------- developer_reviews_analysis ----------
+@app.get("/developer_reviews_analysis")
 def developer_reviews_analysis(desarrolladora: str):
-    # Filtrar los juegos por el desarrollador dado
-    juegos_desarrolladora = output_steam_games[output_steam_games['developer'] == desarrolladora]
+    ids = output_steam_games.loc[
+        output_steam_games["developer"] == desarrolladora, "item_id"
+    ]
+    revs = user_reviews[user_reviews["item_id"].isin(ids)]
 
-    # Obtener los item_ids asociados al desarrollador
-    item_ids_desarrolladora = juegos_desarrolladora['item_id']
+    neg = len(revs[revs["sentiment_analysis"] == 0])
+    pos = len(revs[revs["sentiment_analysis"] == 2])
+    if neg == pos == 0:
+        raise HTTPException(404, detail="Desarrollador sin datos")
 
-    # Filtrar revisiones por los item_ids del desarrollador
-    revisiones_desarrolladora = user_reviews[user_reviews['item_id'].isin(item_ids_desarrolladora)]
+    return {desarrolladora: {"Negative": neg, "Positive": pos}}
 
-    # Contar revisiones con análisis de sentimiento negativo y positivo
-    revisiones_negativas = len(revisiones_desarrolladora[revisiones_desarrolladora['sentiment_analysis'] == 0])
-    revisiones_positivas = len(revisiones_desarrolladora[revisiones_desarrolladora['sentiment_analysis'] == 2])
+# ───────── utilitario de búsqueda por nombre ─────────
+def find_game_id_by_name(name: str) -> int | None:
+    """Devuelve el item_id cuyo app_name coincide (case-insensitive)."""
+    mask = output_steam_games["app_name"].str.lower() == name.lower()
+    ids  = output_steam_games.loc[mask, "item_id"].tolist()
+    return ids[0] if ids else None
 
-    # Retornar los resultados
-    return {desarrolladora: {'Negative': revisiones_negativas, 'Positive': revisiones_positivas}}
+# ───────── nuevo endpoint por nombre ─────────
+@app.get("/recomendacion")
+def recomendacion_por_nombre(name: str, k: int = 5):
+    """
+    Devuelve recomendaciones basadas en el nombre de un juego (app_name).
+    Ejemplo:  /recomendacion?name=Portal
+    Opcional: k (cantidad de recomendaciones, default=5)
+    """
+    game_id = find_game_id_by_name(name)
+    if game_id is None:
+        raise HTTPException(404, detail="Juego no encontrado")
 
+    rec_idxs = get_recommendations(game_id, k)
+    if not rec_idxs:
+        raise HTTPException(404, detail="No se hallaron juegos similares")
 
-@app.get('/recomendacion_juego/{juego_id}')
-def recomendacion_juego(juego_id: int):
-    if juego_id not in steam_games['item_id'].unique():
-        raise HTTPException(status_code=404, detail="Juego no encontrado")
-    
-    recomendaciones = get_recommendations(juego_id)
-    
-    # Filtrar los índices de los juegos recomendados para eliminar los NaN
-    recomendaciones_filtradas = [idx for idx in recomendaciones if not pd.isnull(steam_games.iloc[idx]['title'])]
-    
-    titulos_recomendados = [steam_games.iloc[idx]['title'] for idx in recomendaciones_filtradas]
-    
-    return {
-        "juego_id": juego_id,
-        "recomendaciones": titulos_recomendados
-    }
+    titles = output_steam_games.loc[rec_idxs, "app_name"].dropna().tolist()
+    return {"juego_consultado": name, "recomendaciones": titles}
 
+# ───────── endpoint original por ID (opcional) ─────────
+@app.get("/recomendacion_juego/{juego_id}")
+def recomendacion_juego(juego_id: int, k: int = 5):
+    rec_idxs = get_recommendations(juego_id, k)
+    if not rec_idxs:
+        raise HTTPException(404, detail="Juego no encontrado o sin similares")
 
+    titles = output_steam_games.loc[rec_idxs, "app_name"].dropna().tolist()
+    return {"juego_id": juego_id, "recomendaciones": titles}
 
-
-
-def get_recommendations(item_id, k=5):
-    # Encontrar el índice correspondiente al juego_id proporcionado
-    juego_idx = steam_games[steam_games['item_id'] == item_id].index
-    if len(juego_idx) == 0:
-        return ["No hay juegos recomendados"]  # Si no se encuentra el juego, devuelve un mensaje indicando que no hay juegos recomendados
-    else:
-        juego_idx = juego_idx[0]
-        # Encontrar los índices de los vecinos más cercanos
-        distances, indices = model.kneighbors(caracteristicas[juego_idx], n_neighbors=k+1)
-        # Excluir el propio juego de las recomendaciones
-        indices = indices[:, 1:]
-        if len(indices) == 0:
-            return ["No hay juegos recomendados"]  # Si no se encuentran juegos similares, devuelve un mensaje indicando que no hay juegos recomendados
-        else:
-            # Obtener los índices de los juegos recomendados
-            return indices.flatten().tolist()
-
+# ────────────────────── Runner local ───────────────────────
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", 8000)),
+        reload=True,
+    )
